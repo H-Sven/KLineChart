@@ -1,6 +1,6 @@
 /**
  * @license
- * KLineChart v5.5.0
+ * KLineChart v5.5.1
  * Copyright (c) 2019 lihu.
  * Licensed under Apache License 2.0 https://www.apache.org/licenses/LICENSE-2.0
  */
@@ -483,7 +483,7 @@ var defaultCandleStick = {
     /**
      * 无变化时颜色
      */
-    noChangeColor: '#666666'
+    noChangeColor: '#888888'
   },
   priceMark: {
     display: true,
@@ -507,7 +507,7 @@ var defaultCandleStick = {
       display: true,
       upColor: '#26A69A',
       downColor: '#EF5350',
-      noChangeColor: '#666666',
+      noChangeColor: '#888888',
       line: {
         display: true,
         style: LineStyle.DASH,
@@ -535,9 +535,9 @@ var defaultCandleStick = {
 
 var defaultRealTime = {
   timeLine: {
-    color: '#1e88e5',
+    color: '#2196F3',
     size: 1,
-    areaFillColor: 'rgba(30, 136, 229, 0.08)'
+    areaFillColor: 'rgba(33, 150, 243, 0.08)'
   },
 
   /**
@@ -545,7 +545,7 @@ var defaultRealTime = {
    */
   averageLine: {
     display: true,
-    color: '#F5A623',
+    color: '#FF9600',
     size: 1
   }
 };
@@ -558,16 +558,16 @@ var defaultTechnicalIndicator = {
   bar: {
     upColor: '#26A69A',
     downColor: '#EF5350',
-    noChangeColor: '#666666'
+    noChangeColor: '#888888'
   },
   line: {
     size: 1,
-    colors: ['#D9D9D9', '#F5A623', '#F601FF', '#1e88e5', '#9157DB']
+    colors: ['#D9D9D9', '#FF9600', '#F632FF', '#2196F3', '#9157DB']
   },
   circle: {
     upColor: '#26A69A',
     downColor: '#EF5350',
-    noChangeColor: '#666666'
+    noChangeColor: '#888888'
   },
   lastValueMark: {
     display: false,
@@ -610,7 +610,8 @@ var defaultXAxis = {
     size: 12,
     family: 'Helvetica Neue',
     weight: 'normal',
-    margin: 3
+    paddingTop: 3,
+    paddingBottom: 6
   },
   // tick线
   tickLine: {
@@ -664,7 +665,8 @@ var defaultYAxis = {
     size: 12,
     family: 'Helvetica Neue',
     weight: 'normal',
-    margin: 3
+    paddingLeft: 3,
+    paddingRight: 6
   },
   // tick线
   tickLine: {
@@ -786,16 +788,16 @@ var defaultFloatLayer = {
 
 var defaultGraphicMark = {
   line: {
-    color: '#1e88e5',
+    color: '#2196F3',
     size: 1
   },
   point: {
-    backgroundColor: '#1e88e5',
-    borderColor: '#1e88e5',
+    backgroundColor: '#2196F3',
+    borderColor: '#2196F3',
     borderSize: 1,
     radius: 4,
-    activeBackgroundColor: '#1e88e5',
-    activeBorderColor: '#1e88e5',
+    activeBackgroundColor: '#2196F3',
+    activeBorderColor: '#2196F3',
     activeBorderSize: 1,
     activeRadius: 6
   },
@@ -3984,12 +3986,11 @@ var ChartData = /*#__PURE__*/function () {
 
 /**
  * 获取屏幕比
- * @param ctx
+ * @param canvas
  * @returns {number}
  */
-function getPixelRatio(ctx) {
-  var backingStore = ctx.backingStorePixelRatio || ctx.webkitBackingStorePixelRatio || ctx.mozBackingStorePixelRatio || ctx.msBackingStorePixelRatio || ctx.oBackingStorePixelRatio || ctx.backingStorePixelRatio || 1;
-  return (window.devicePixelRatio || 1) / backingStore;
+function getPixelRatio(canvas) {
+  return canvas.ownerDocument && canvas.ownerDocument.defaultView && canvas.ownerDocument.defaultView.devicePixelRatio || 1;
 }
 /**
  * 测量文字的宽度
@@ -4203,7 +4204,7 @@ var Pane = /*#__PURE__*/function () {
     value: function getImage(includeFloatLayer, includeGraphicMark) {
       var canvas = document.createElement('canvas');
       var ctx = canvas.getContext('2d');
-      var pixelRatio = getPixelRatio(ctx);
+      var pixelRatio = getPixelRatio(canvas);
       var width = this._element.offsetWidth;
       var height = this._element.offsetHeight;
       canvas.style.width = "".concat(width, "px");
@@ -4363,6 +4364,12 @@ var Widget = /*#__PURE__*/function () {
     key: "invalidate",
     value: function invalidate(level) {
       switch (level) {
+        case InvalidateLevel.GRAPHIC_MARK:
+          {
+            this._expandView && this._expandView.flush();
+            break;
+          }
+
         case InvalidateLevel.FLOAT_LAYER:
           {
             this._floatLayerView.flush();
@@ -4377,6 +4384,7 @@ var Widget = /*#__PURE__*/function () {
 
             this._floatLayerView.flush();
 
+            this._expandView && this._expandView.flush();
             break;
           }
       }
@@ -4393,7 +4401,7 @@ var Widget = /*#__PURE__*/function () {
     value: function getImage(includeFloatLayer, includeGraphicMark) {
       var canvas = document.createElement('canvas');
       var ctx = canvas.getContext('2d');
-      var pixelRatio = getPixelRatio(ctx);
+      var pixelRatio = getPixelRatio(canvas);
       canvas.style.width = "".concat(this._width, "px");
       canvas.style.height = "".concat(this._height, "px");
       canvas.width = this._width * pixelRatio;
@@ -4534,7 +4542,7 @@ var View = /*#__PURE__*/function () {
 
       if (this._height !== this._canvas.offsetHeight || this._width !== this._canvas.offsetWidth) {
         this._redraw(function () {
-          var pixelRatio = getPixelRatio(_this._ctx);
+          var pixelRatio = getPixelRatio(_this._canvas);
           _this._canvas.style.width = "".concat(_this._width, "px");
           _this._canvas.style.height = "".concat(_this._height, "px");
           _this._canvas.width = _this._width * pixelRatio;
@@ -4920,6 +4928,7 @@ var TechnicalIndicatorView = /*#__PURE__*/function (_View) {
      * @param barSpace
      * @param kLineData
      * @param barOptions
+     * @param barStyle
      * @private
      */
 
@@ -5452,11 +5461,10 @@ var YAxisView = /*#__PURE__*/function (_View) {
       var tickLine = yAxisOptions.tickLine;
       var tickLineDisplay = tickLine.display;
       var tickLineLength = tickLine.length;
-      var tickTextMargin = tickText.margin;
       var labelX;
 
       if (this._isDrawFromStart(yAxisOptions)) {
-        labelX = tickTextMargin;
+        labelX = tickText.paddingLeft;
 
         if (yAxisOptions.axisLine.display) {
           labelX += yAxisOptions.axisLine.size;
@@ -5468,7 +5476,7 @@ var YAxisView = /*#__PURE__*/function (_View) {
 
         this._ctx.textAlign = 'left';
       } else {
-        labelX = this._width - tickTextMargin;
+        labelX = this._width - tickText.paddingRight;
 
         if (yAxisOptions.axisLine.display) {
           labelX -= yAxisOptions.axisLine.size;
@@ -5701,7 +5709,7 @@ var YAxisFloatLayerView = /*#__PURE__*/function (_View) {
     value: function _drawCrossHairLabel() {
       var crossHair = this._chartData.crossHair();
 
-      if (crossHair.paneTag !== this._additionalDataProvider.tag()) {
+      if (crossHair.paneTag !== this._additionalDataProvider.tag() || this._chartData.dataList().length === 0) {
         return;
       }
 
@@ -5833,8 +5841,8 @@ var Axis = /*#__PURE__*/function () {
     key: "_initMeasureCanvas",
     value: function _initMeasureCanvas() {
       var measureCanvas = document.createElement('canvas');
+      var pixelRatio = getPixelRatio(measureCanvas);
       this._measureCtx = measureCanvas.getContext('2d');
-      var pixelRatio = getPixelRatio(this._measureCtx);
 
       this._measureCtx.scale(pixelRatio, pixelRatio);
     }
@@ -6172,9 +6180,6 @@ var YAxis = /*#__PURE__*/function (_Axis) {
             this._maxValue += percentValue;
           }
         }
-      } else {
-        this._minValue = 0;
-        this._maxValue = 10;
       }
     }
   }, {
@@ -6226,7 +6231,7 @@ var YAxis = /*#__PURE__*/function (_Axis) {
             textWidth = Math.max(textWidth, calcTextWidth(_this3._measureCtx, tick.v));
           });
 
-          yAxisWidth += yAxisOptions.tickText.margin * 2 + textWidth;
+          yAxisWidth += yAxisOptions.tickText.paddingLeft + yAxisOptions.tickText.paddingRight + textWidth;
         }
       }
 
@@ -6622,40 +6627,11 @@ var CandleStickView = /*#__PURE__*/function (_TechnicalIndicatorVi) {
     value: function _drawCandleStick() {
       var _this2 = this;
 
-      var markHighestPrice = -Infinity;
-      var markHighestPriceX = -1;
-      var markLowestPrice = Infinity;
-      var markLowestPriceX = -1;
+      var candleStickOptions = this._chartData.styleOptions().candleStick;
 
-      var candleStick = this._chartData.styleOptions().candleStick;
-
-      var onDrawing = function onDrawing(x, i, kLineData, halfBarSpace, barSpace) {
-        var high = kLineData.high;
-        var low = kLineData.low;
-
-        if (markHighestPrice < high) {
-          markHighestPrice = high;
-          markHighestPriceX = x;
-        }
-
-        if (low < markLowestPrice) {
-          markLowestPrice = low;
-          markLowestPriceX = x;
-        }
-
-        _this2._drawCandleStickBar(x, halfBarSpace, barSpace, kLineData, candleStick.bar, candleStick.bar.style);
-      };
-
-      this._drawGraphics(onDrawing);
-
-      this._highestMarkData = {
-        x: markHighestPriceX,
-        price: markHighestPrice
-      };
-      this._lowestMarkData = {
-        x: markLowestPriceX,
-        price: markLowestPrice
-      };
+      this._drawGraphics(function (x, i, kLineData, halfBarSpace, barSpace) {
+        _this2._drawCandleStickBar(x, halfBarSpace, barSpace, kLineData, candleStickOptions.bar, candleStickOptions.bar.style);
+      });
     }
     /**
      * 渲染最高价标记
@@ -6664,21 +6640,33 @@ var CandleStickView = /*#__PURE__*/function (_TechnicalIndicatorVi) {
   }, {
     key: "_drawHighestPriceMark",
     value: function _drawHighestPriceMark() {
-      if (!this._highestMarkData) {
+      var priceMarkOptions = this._chartData.styleOptions().candleStick.priceMark;
+
+      var highestPriceMarkOptions = priceMarkOptions.high;
+
+      if (!priceMarkOptions.display || !highestPriceMarkOptions.display) {
         return;
       }
 
-      var price = this._highestMarkData.price;
+      var dataList = this._chartData.dataList();
 
-      var priceMark = this._chartData.styleOptions().candleStick.priceMark;
+      var to = this._chartData.to();
 
-      var highestPriceMark = priceMark.high;
+      var highestPrice = -Infinity;
+      var highestPos = -1;
 
-      if (price === -Infinity || !priceMark.display || !highestPriceMark.display) {
-        return;
+      for (var i = this._chartData.from(); i < to; i++) {
+        var high = formatValue(dataList[i], 'high', -Infinity);
+
+        if (high > highestPrice) {
+          highestPrice = high;
+          highestPos = i;
+        }
       }
 
-      this._drawLowestHighestPriceMark(highestPriceMark, this._highestMarkData.x, price, true, this._chartData.pricePrecision());
+      if (highestPrice !== -Infinity) {
+        this._drawLowestHighestPriceMark(highestPriceMarkOptions, highestPos, highestPrice, true);
+      }
     }
     /**
      * 绘制最低价标记
@@ -6687,44 +6675,58 @@ var CandleStickView = /*#__PURE__*/function (_TechnicalIndicatorVi) {
   }, {
     key: "_drawLowestPriceMark",
     value: function _drawLowestPriceMark() {
-      if (!this._lowestMarkData) {
+      var priceMarkOptions = this._chartData.styleOptions().candleStick.priceMark;
+
+      var lowestPriceMarkOptions = priceMarkOptions.low;
+
+      if (!priceMarkOptions.display || !lowestPriceMarkOptions.display) {
         return;
       }
 
-      var price = this._lowestMarkData.price;
+      var dataList = this._chartData.dataList();
 
-      var priceMark = this._chartData.styleOptions().candleStick.priceMark;
+      var to = this._chartData.to();
 
-      var lowestPriceMark = priceMark.low;
+      var lowestPrice = Infinity;
+      var lowestPos = -1;
 
-      if (price === Infinity || !priceMark.display || !lowestPriceMark.display) {
-        return;
+      for (var i = this._chartData.from(); i < to; i++) {
+        var low = formatValue(dataList[i], 'low', Infinity);
+
+        if (low < lowestPrice) {
+          lowestPrice = low;
+          lowestPos = i;
+        }
       }
 
-      this._drawLowestHighestPriceMark(lowestPriceMark, this._lowestMarkData.x, price, false, this._chartData.pricePrecision());
+      if (lowestPrice !== Infinity) {
+        this._drawLowestHighestPriceMark(lowestPriceMarkOptions, lowestPos, lowestPrice);
+      }
     }
     /**
      * 渲染最高最低价格标记
-     * @param priceMark
-     * @param x
+     * @param priceMarkOptions
+     * @param pricePos
      * @param price
      * @param isHigh
-     * @param pricePrecision
      */
 
   }, {
     key: "_drawLowestHighestPriceMark",
-    value: function _drawLowestHighestPriceMark(priceMark, x, price, isHigh, pricePrecision) {
+    value: function _drawLowestHighestPriceMark(priceMarkOptions, pricePos, price, isHigh) {
       var _this3 = this;
+
+      var pricePrecision = this._chartData.pricePrecision();
 
       var priceY = this._yAxis.convertToPixel(price);
 
-      var startX = x;
+      var startX = this._xAxis.convertToPixel(pricePos);
+
       var startY = priceY + (isHigh ? -2 : 2);
       this._ctx.textAlign = 'left';
       this._ctx.lineWidth = 1;
-      this._ctx.strokeStyle = priceMark.color;
-      this._ctx.fillStyle = priceMark.color;
+      this._ctx.strokeStyle = priceMarkOptions.color;
+      this._ctx.fillStyle = priceMarkOptions.color;
       drawLine(this._ctx, function () {
         _this3._ctx.beginPath();
 
@@ -6750,11 +6752,11 @@ var CandleStickView = /*#__PURE__*/function (_TechnicalIndicatorVi) {
       var y = startY + (isHigh ? -5 : 5);
       drawVerticalLine(this._ctx, startX, startY, y);
       drawHorizontalLine(this._ctx, y, startX, startX + 5);
-      this._ctx.font = getFont(priceMark.textSize, priceMark.textWeight, priceMark.textFamily);
+      this._ctx.font = getFont(priceMarkOptions.textSize, priceMarkOptions.textWeight, priceMarkOptions.textFamily);
       var text = formatPrecision(price, pricePrecision);
       this._ctx.textBaseline = 'middle';
 
-      this._ctx.fillText(text, startX + 5 + priceMark.textMargin, y);
+      this._ctx.fillText(text, startX + 5 + priceMarkOptions.textMargin, y);
     }
     /**
      * 绘制最新价线
@@ -9431,22 +9433,6 @@ var CandleStickWidget = /*#__PURE__*/function (_TechnicalIndicatorWi) {
     value: function _createFloatLayerView(container, props) {
       return new CandleStickFloatLayerView(container, props.chartData, props.xAxis, props.yAxis, props.additionalDataProvider);
     }
-  }, {
-    key: "invalidate",
-    value: function invalidate(level) {
-      if (level !== InvalidateLevel.GRAPHIC_MARK) {
-        _get(_getPrototypeOf(CandleStickWidget.prototype), "invalidate", this).call(this, level);
-      }
-
-      this._expandView.flush();
-    }
-  }, {
-    key: "setSize",
-    value: function setSize(width, height) {
-      _get(_getPrototypeOf(CandleStickWidget.prototype), "setSize", this).call(this, width, height);
-
-      this._expandView.setSize(width, height);
-    }
   }]);
 
   return CandleStickWidget;
@@ -9639,7 +9625,7 @@ var XAxisView = /*#__PURE__*/function (_View) {
       this._ctx.font = getFont(tickText.size, tickText.weight, tickText.family);
       this._ctx.textAlign = 'center';
       this._ctx.fillStyle = tickText.color;
-      var labelY = tickText.margin;
+      var labelY = tickText.paddingTop;
 
       if (xAxisOptions.axisLine.display) {
         labelY += xAxisOptions.axisLine.size;
@@ -9928,7 +9914,7 @@ var XAxis = /*#__PURE__*/function (_Axis) {
         }
 
         if (xAxisOptions.tickText.display) {
-          xAxisHeight += xAxisOptions.tickText.margin * 2 + xAxisOptions.tickText.size;
+          xAxisHeight += xAxisOptions.tickText.paddingTop + xAxisOptions.tickText.paddingBottom + xAxisOptions.tickText.size;
         }
       }
 
@@ -10154,7 +10140,7 @@ var SeparatorPane = /*#__PURE__*/function () {
 
       var canvas = document.createElement('canvas');
       var ctx = canvas.getContext('2d');
-      var pixelRatio = getPixelRatio(ctx);
+      var pixelRatio = getPixelRatio(canvas);
       var width = this._wrapper.offsetWidth;
       var height = separator.size;
       canvas.style.width = "".concat(width, "px");
@@ -11426,7 +11412,7 @@ var ChartPane = /*#__PURE__*/function () {
 
       var canvas = document.createElement('canvas');
       var ctx = canvas.getContext('2d');
-      var pixelRatio = getPixelRatio(ctx);
+      var pixelRatio = getPixelRatio(canvas);
       var width = this._chartContainer.offsetWidth;
       var height = this._chartContainer.offsetHeight;
       canvas.style.width = "".concat(width, "px");
@@ -11841,7 +11827,7 @@ var CHART_NAME_PREFIX = 'k_line_chart_';
  */
 
 function version() {
-  return '5.5.0';
+  return '5.5.1';
 }
 /**
  * 初始化
@@ -11853,7 +11839,7 @@ function version() {
 
 function init(ds) {
   var style = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
-  var errorMessage = 'Chart version is 5.5.0. Root dom is null, can not initialize the chart!!!';
+  var errorMessage = 'Chart version is 5.5.1. Root dom is null, can not initialize the chart!!!';
   var container = ds;
 
   if (!container) {

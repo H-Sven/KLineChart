@@ -104,6 +104,10 @@ export default class Widget {
    */
   invalidate (level) {
     switch (level) {
+      case InvalidateLevel.GRAPHIC_MARK: {
+        this._expandView && this._expandView.flush()
+        break
+      }
       case InvalidateLevel.FLOAT_LAYER: {
         this._floatLayerView.flush()
         break
@@ -112,6 +116,7 @@ export default class Widget {
       case InvalidateLevel.FULL: {
         this._mainView.flush()
         this._floatLayerView.flush()
+        this._expandView && this._expandView.flush()
         break
       }
       default: {
@@ -129,7 +134,7 @@ export default class Widget {
   getImage (includeFloatLayer, includeGraphicMark) {
     const canvas = document.createElement('canvas')
     const ctx = canvas.getContext('2d')
-    const pixelRatio = getPixelRatio(ctx)
+    const pixelRatio = getPixelRatio(canvas)
     canvas.style.width = `${this._width}px`
     canvas.style.height = `${this._height}px`
     canvas.width = this._width * pixelRatio
