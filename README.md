@@ -41,12 +41,12 @@ The generated files are in the dist folder.
 [https://github.com/liihuu/KLineChartSample](https://github.com/liihuu/KLineChartSample)
 
 ## Screenshot
-<img width="800" src="./screenshot/screenshot.png"/>
+<img width="800" src="./screenshot/screenshot.jpg"/>
 
 ## License
 KLineChart is available under the Apache License V2.
 
-## Sponsor
+## Reward Author
 + BTC: [bc1qnwzukszzk5xfk0zs3sr8etzgctgnrtqts43jzp3khe6gm7xazprsp4y6n3]()
 + ETH: [0xd2c3911654db861e0a2e17415e11a209c1fc3594]()
 + BCH: [36MPYddUxU2vGDB1zakjisoRHMGqZiVnz9]()

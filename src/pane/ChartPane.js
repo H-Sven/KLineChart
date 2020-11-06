@@ -22,7 +22,6 @@ import { formatValue } from '../utils/format'
 import TechnicalIndicatorPane from './TechnicalIndicatorPane'
 import SeparatorPane from './SeparatorPane'
 
-import { MA, MACD } from '../data/technicalindicator/defaultTechnicalIndicatorType'
 import ChartEvent from '../event/ChartEvent'
 import { getPixelRatio } from '../utils/canvas'
 import { DEV } from '../utils/env'
@@ -47,7 +46,6 @@ export default class ChartPane {
       container: this._chartContainer,
       chartData: this._chartData,
       xAxis: this._xAxisPane.xAxis(),
-      technicalIndicatorType: MA,
       tag: CANDLE_STICK_PANE_TAG
     })
     this._chartEvent = new ChartEvent(
@@ -56,7 +54,7 @@ export default class ChartPane {
       this._candleStickPane.yAxis()
     )
     this._measurePaneHeight()
-    this._layoutPane()
+    this._measureWidthAndLayoutPane(true)
   }
 
   /**
@@ -102,25 +100,7 @@ export default class ChartPane {
       height = 0
     }
     this._technicalIndicatorPanes[paneIndex].setHeight(height)
-    this._measurePaneHeight()
-    this._candleStickPane.layout()
-    for (const pane of this._technicalIndicatorPanes) {
-      pane.layout()
-    }
-  }
-
-  /**
-   * 重新布局
-   * @private
-   */
-  _layoutPane () {
-    this._measurePaneWidth()
-    this._xAxisPane.computeAxis()
-    this._xAxisPane.layout()
-    this._candleStickPane.layout()
-    for (const pane of this._technicalIndicatorPanes) {
-      pane.layout()
-    }
+    this.resize()
   }
 
   /**
@@ -135,13 +115,16 @@ export default class ChartPane {
         pane.invalidate(invalidateLevel)
       }
     } else {
-      this._candleStickPane.computeAxis()
+      let shouldMeasureWidth = this._candleStickPane.computeAxis()
       if (invalidateLevel !== InvalidateLevel.GRAPHIC_MARK) {
         for (const pane of this._technicalIndicatorPanes) {
-          pane.computeAxis()
+          const should = pane.computeAxis()
+          if (should) {
+            shouldMeasureWidth = should
+          }
         }
       }
-      this._layoutPane()
+      this._measureWidthAndLayoutPane(shouldMeasureWidth)
     }
   }
 
@@ -152,13 +135,32 @@ export default class ChartPane {
   _calcAllPaneTechnicalIndicator () {
     Promise.resolve().then(
       _ => {
-        this._chartData.calcTechnicalIndicator(this._candleStickPane)
+        let shouldMeasureWidth = this._candleStickPane.calcTechnicalIndicator()
         for (const pane of this._technicalIndicatorPanes) {
-          this._chartData.calcTechnicalIndicator(pane)
+          const should = pane.calcTechnicalIndicator()
+          if (should) {
+            shouldMeasureWidth = should
+          }
         }
-        this._layoutPane()
+        this._measureWidthAndLayoutPane(shouldMeasureWidth)
       }
     )
+  }
+
+  /**
+   * 计算宽度和重新布局
+   * @private
+   */
+  _measureWidthAndLayoutPane (shouldMeasureWidth) {
+    if (shouldMeasureWidth) {
+      this._measurePaneWidth()
+    }
+    this._xAxisPane.computeAxis()
+    this._xAxisPane.layout()
+    this._candleStickPane.layout()
+    for (const pane of this._technicalIndicatorPanes) {
+      pane.layout()
+    }
   }
 
   /**
@@ -266,11 +268,11 @@ export default class ChartPane {
    */
   resize () {
     this._measurePaneHeight()
-    this._candleStickPane.computeAxis()
+    this._candleStickPane.computeAxis(true)
     for (const pane of this._technicalIndicatorPanes) {
-      pane.computeAxis()
+      pane.computeAxis(true)
     }
-    this._layoutPane()
+    this._measureWidthAndLayoutPane(true)
   }
 
   /**
@@ -279,25 +281,29 @@ export default class ChartPane {
    * @param params
    */
   applyTechnicalIndicatorParams (technicalIndicatorType, params) {
-    const info = this._chartData.technicalIndicator(technicalIndicatorType)
-    if (info.structure && isArray(params)) {
+    const technicalIndicator = this._chartData.technicalIndicator(technicalIndicatorType)
+    if (technicalIndicator && isArray(params)) {
       for (const v of params) {
         if (!isNumber(v) || v <= 0 || parseInt(v, 10) !== v) {
           return
         }
       }
-      info.calcParams = clone(params)
+      technicalIndicator.setCalcParams(clone(params))
       Promise.resolve().then(
         _ => {
+          let shouldMeasureWidth = false
           if (this._candleStickPane.technicalIndicator().name === technicalIndicatorType) {
-            this._chartData.calcTechnicalIndicator(this._candleStickPane)
+            shouldMeasureWidth = this._candleStickPane.calcTechnicalIndicator()
           }
           for (const pane of this._technicalIndicatorPanes) {
             if (pane.technicalIndicator().name === technicalIndicatorType) {
-              this._chartData.calcTechnicalIndicator(pane)
+              const should = pane.calcTechnicalIndicator()
+              if (should) {
+                shouldMeasureWidth = should
+              }
             }
           }
-          this._layoutPane()
+          this._measureWidthAndLayoutPane(shouldMeasureWidth)
         }
       )
     }
@@ -365,7 +371,8 @@ export default class ChartPane {
    * @param type
    */
   setCandleStickChartType (type) {
-    this._candleStickPane.setChartType(type)
+    const shouldMeasureWidth = this._candleStickPane.setChartType(type)
+    this._measureWidthAndLayoutPane(shouldMeasureWidth)
   }
 
   /**
@@ -375,9 +382,9 @@ export default class ChartPane {
    * @param dragEnabled
    * @returns {string}
    */
-  createTechnicalIndicator (technicalIndicatorType = MACD, height = DEFAULT_TECHNICAL_INDICATOR_PANE_HEIGHT, dragEnabled) {
-    const { structure: TechnicalIndicator } = this._chartData.technicalIndicator(technicalIndicatorType)
-    if (!TechnicalIndicator) {
+  createTechnicalIndicator (technicalIndicatorType, height = DEFAULT_TECHNICAL_INDICATOR_PANE_HEIGHT, dragEnabled) {
+    const technicalIndicator = this._chartData.technicalIndicator(technicalIndicatorType)
+    if (!technicalIndicator) {
       if (DEV) {
         console.warn('The corresponding technical indicator type cannot be found and cannot be created!!!')
       }
@@ -402,12 +409,11 @@ export default class ChartPane {
       chartData: this._chartData,
       xAxis: this._xAxisPane.xAxis(),
       technicalIndicatorType,
-      tag
+      tag,
+      height
     })
-    technicalIndicatorPane.setHeight(height)
     this._technicalIndicatorPanes.push(technicalIndicatorPane)
-    this._measurePaneHeight()
-    this._layoutPane()
+    this.resize()
     return tag
   }
 
@@ -432,8 +438,7 @@ export default class ChartPane {
       for (let i = 0; i < this._separatorPanes.length; i++) {
         this._separatorPanes[i].updatePaneIndex(i)
       }
-      this._measurePaneHeight()
-      this._layoutPane()
+      this.resize()
     }
   }
 
@@ -444,8 +449,8 @@ export default class ChartPane {
    */
   setTechnicalIndicatorType (tag, technicalIndicatorType) {
     if (tag === CANDLE_STICK_PANE_TAG) {
-      this._candleStickPane.setTechnicalIndicatorType(technicalIndicatorType)
-      this._layoutPane()
+      const shouldMeasureWidth = this._candleStickPane.setTechnicalIndicatorType(technicalIndicatorType)
+      this._measureWidthAndLayoutPane(shouldMeasureWidth)
     } else {
       let p
       for (const pane of this._technicalIndicatorPanes) {
@@ -455,12 +460,12 @@ export default class ChartPane {
         }
       }
       if (p) {
-        const { structure: TechnicalIndicator } = this._chartData.technicalIndicator(technicalIndicatorType)
-        if (!TechnicalIndicator) {
+        const technicalIndicator = this._chartData.technicalIndicator(technicalIndicatorType)
+        if (!technicalIndicator) {
           this.removeTechnicalIndicator(tag)
         } else {
-          p.setTechnicalIndicatorType(technicalIndicatorType)
-          this._layoutPane()
+          const shouldMeasureWidth = p.setTechnicalIndicatorType(technicalIndicatorType)
+          this._measureWidthAndLayoutPane(shouldMeasureWidth)
         }
       }
     }
@@ -484,7 +489,10 @@ export default class ChartPane {
    */
   getConvertPictureUrl (includeFloatLayer, includeGraphicMark, type = 'jpeg', backgroundColor = '#333333') {
     if (type !== 'png' && type !== 'jpeg' && type !== 'bmp') {
-      throw new Error('Picture format only supports jpeg, png and bmp!!!')
+      if (DEV) {
+        console.warn('Picture format only supports jpeg, png and bmp!!!')
+      }
+      return
     }
     const canvas = document.createElement('canvas')
     const ctx = canvas.getContext('2d')

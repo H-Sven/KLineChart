@@ -1,5 +1,28 @@
 # 版本日志
 
+## 5.6.0
+`2020-08-29`
++ 🆕 自定义技术指标新增`render`属性。
++ 🆕 自定义指标方法`calcTechnicalIndicator`，增加参数`plots`。
++ 🆕 配置项新增`xAxis.height`和`yAxis.width`。
++ 🆕 新增方法`subscribeDrawAction`和`unsubscribeDrawAction`，用于绘制监听和取消。
++ 🆕 新增方法`getTimezone`。
++ 👉 方法`getTechnicalIndicatorParamOptions`变更为`getTechnicalIndicatorParams`。
++ 👉 内置指标文字提示显示`xxxMa`变更为`maXxx`。
++ 🗑 去除配置项`floatLayer.prompt.technicalIndicator.point`。
+
+
+## 5.5.1
+`2020-08-16`
++ 💄 优化无数据时，y轴显示。
++ 💄 优化默认主图技术指标类型，默认图表更纯粹。
++ 💄 优化性能，减少无用的计算。
++ 🐞 修复切换图表类型和新增副图指标y轴不能显示和显示不对问题。
++ 🐞 修复当配置是方法时，不能正确合并的问题。
++ 👉 `xAxis.tickText.margin`变更为`xAxis.tickText.paddingTop`和`xAxis.tickText.paddingBottom`。
++ 👉 `yAxis.tickText.margin`变更为`yAxis.tickText.paddingLeft`和`yAxis.tickText.paddingRight`。
+
+
 ## 5.5.0
 `2020-07-26`
 + 🆕 重新加回技术指标ohlc显示。

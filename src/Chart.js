@@ -15,6 +15,7 @@
 import ChartPane, { CANDLE_STICK_PANE_TAG } from './pane/ChartPane'
 import { isArray, clone } from './utils/typeChecks'
 import { GraphicMarkType } from './data/ChartData'
+import { DEV } from './utils/env'
 
 export default class Chart {
   constructor (container, styleOptions) {
@@ -53,9 +54,11 @@ export default class Chart {
 
   /**
    * 获取技术指标参数配置
+   * @param technicalIndicatorType
+   * @returns {function(Array<string>, string, string): Promise}
    */
-  getTechnicalIndicatorParamOptions () {
-    return this._chartPane.chartData().technicalIndicatorCalcParams()
+  getTechnicalIndicatorParams (technicalIndicatorType) {
+    return this._chartPane.chartData().technicalIndicatorCalcParams(technicalIndicatorType)
   }
 
   /**
@@ -82,6 +85,13 @@ export default class Chart {
    */
   setTimezone (timezone) {
     this._chartPane.setTimezone(timezone)
+  }
+
+  /**
+   * 获取当前时区
+   */
+  getTimezone () {
+    return this._chartPane.chartData().timezone()
   }
 
   /**
@@ -261,6 +271,38 @@ export default class Chart {
     })
     this._chartPane.chartData().setGraphicMarkType(GraphicMarkType.NONE)
     this._chartPane.chartData().setGraphicMarkData(newGraphicMarkDatas)
+  }
+
+  /**
+   * 订阅绘制事件
+   * @param type
+   * @param callback
+   */
+  subscribeDrawAction (type, callback) {
+    const delegate = this._chartPane.chartData().drawActionDelegate(type)
+    if (!delegate) {
+      if (DEV) {
+        console.warn('Draw action type does not exist!!!')
+      }
+      return
+    }
+    delegate.subscribe(callback)
+  }
+
+  /**
+   * 取消订阅绘制事件
+   * @param type
+   * @param callback
+   */
+  unsubscribeDrawAction (type, callback) {
+    const delegate = this._chartPane.chartData().drawActionDelegate(type)
+    if (!delegate) {
+      if (DEV) {
+        console.warn('Draw action type does not exist!!!')
+      }
+      return
+    }
+    delegate.unsubscribe(callback)
   }
 
   /**

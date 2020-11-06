@@ -19,6 +19,7 @@ import { formatValue } from '../utils/format'
 import { createNewTechnicalIndicator, createTechnicalIndicators } from './technicalindicator/technicalIndicatorControl'
 import { DEV } from '../utils/env'
 import { TechnicalIndicatorSeries } from './technicalindicator/TechnicalIndicator'
+import Delegate from './delegate/Delegate'
 
 export const InvalidateLevel = {
   NONE: 0,
@@ -45,7 +46,12 @@ export const GraphicMarkType = {
   FIBONACCI_LINE: 'fibonacciLine'
 }
 
-const MAX_DATA_SPACE = 30
+export const DrawActionType = {
+  DRAW_CANDLE: 'drawCandle',
+  DRAW_TECHNICAL_INDICATOR: 'drawTechnicalIndicator'
+}
+
+const MAX_DATA_SPACE = 50
 const MIN_DATA_SPACE = 3
 
 export default class ChartData {
@@ -65,7 +71,7 @@ export default class ChartData {
 
     this._dateTimeFormat = new Intl.DateTimeFormat(
       'en', {
-        hour12: false, year: 'numeric', month: 'numeric', day: 'numeric', hour: 'numeric', minute: 'numeric'
+        hour12: false, year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit'
       }
     )
 
@@ -138,6 +144,12 @@ export default class ChartData {
       // 斐波那契线
       fibonacciLine: []
     }
+
+    // 绘制事件代理
+    this._drawActionDelegate = {
+      [DrawActionType.DRAW_CANDLE]: new Delegate(),
+      [DrawActionType.DRAW_TECHNICAL_INDICATOR]: new Delegate()
+    }
   }
 
   /**
@@ -196,9 +208,14 @@ export default class ChartData {
 
   /**
    * 获取技术指标计算参数结合
+   * @param technicalIndicatorType
    * @returns {function(Array<string>, string, string): Promise}
    */
-  technicalIndicatorCalcParams () {
+  technicalIndicatorCalcParams (technicalIndicatorType) {
+    const technical = this.technicalIndicator(technicalIndicatorType)
+    if (technical) {
+      return clone(technical.calcParams)
+    }
     const calcParams = {}
     for (const name in this._technicalIndicators) {
       calcParams[name] = clone(this._technicalIndicators[name].calcParams)
@@ -211,7 +228,7 @@ export default class ChartData {
    * @param technicalIndicatorType
    */
   technicalIndicator (technicalIndicatorType) {
-    return this._technicalIndicators[technicalIndicatorType] || {}
+    return this._technicalIndicators[technicalIndicatorType]
   }
 
   /**
@@ -247,7 +264,7 @@ export default class ChartData {
     try {
       dateTimeFormat = new Intl.DateTimeFormat(
         'en', {
-          hour12: false, timeZone: timezone, year: 'numeric', month: 'numeric', day: 'numeric', hour: 'numeric', minute: 'numeric'
+          hour12: false, timeZone: timezone, year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit'
         }
       )
     } catch (e) {
@@ -287,11 +304,11 @@ export default class ChartData {
         const series = this._technicalIndicators[name].series
         switch (series) {
           case TechnicalIndicatorSeries.PRICE: {
-            this._technicalIndicators[name].precision = pricePrecision
+            this._technicalIndicators[name].setPrecision(pricePrecision)
             break
           }
           case TechnicalIndicatorSeries.VOLUME: {
-            this._technicalIndicators[name].precision = volumePrecision
+            this._technicalIndicators[name].setPrecision(volumePrecision)
             break
           }
           default: { break }
@@ -308,10 +325,10 @@ export default class ChartData {
   applyTechnicalIndicatorPrecision (precision, technicalIndicatorType) {
     const technicalIndicator = this.technicalIndicator(technicalIndicatorType)
     if (technicalIndicator) {
-      technicalIndicator.precision = precision
+      technicalIndicator.setPrecision(precision)
     } else {
       for (const name in this._technicalIndicators) {
-        this._technicalIndicators[name].precision = precision
+        this._technicalIndicators[name].setPrecision(precision)
       }
     }
   }
@@ -668,25 +685,19 @@ export default class ChartData {
    * @param technicalIndicatorInfo
    */
   addCustomTechnicalIndicator (technicalIndicatorInfo) {
-    const info = createNewTechnicalIndicator(technicalIndicatorInfo || {})
-    if (info) {
+    const technicalIndicator = createNewTechnicalIndicator(technicalIndicatorInfo || {})
+    if (technicalIndicator) {
       // 将生成的新的指标类放入集合
-      this._technicalIndicators[technicalIndicatorInfo.name] = info
+      this._technicalIndicators[technicalIndicatorInfo.name] = technicalIndicator
     }
   }
 
   /**
-   * 计算指标
-   * @param pane
+   * 获取绘制事件代理
+   * @param type
+   * @returns {Delegate}
    */
-  calcTechnicalIndicator (pane) {
-    const technicalIndicator = pane.technicalIndicator()
-    if (technicalIndicator) {
-      const { calcParams, precision } = this._technicalIndicators[technicalIndicator.name] || {}
-      technicalIndicator.setPrecision(isValid(precision) ? precision : this._pricePrecision)
-      technicalIndicator.setCalcParams(calcParams)
-      technicalIndicator.result = technicalIndicator.calcTechnicalIndicator(this._dataList, technicalIndicator.calcParams) || []
-      pane.computeAxis()
-    }
+  drawActionDelegate (type) {
+    return this._drawActionDelegate[type]
   }
 }

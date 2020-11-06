@@ -20,22 +20,15 @@ export default class WilliamsR extends TechnicalIndicator {
   constructor () {
     super({
       name: WR,
-      calcParams: [6, 10, 14],
-      shouldCheckParamCount: false,
-      plots: [
-        { key: 'wr1', type: 'line' },
-        { key: 'wr2', type: 'line' },
-        { key: 'wr3', type: 'line' }
-      ]
+      shouldCheckParamCount: false
     })
+    this.setCalcParams([6, 10, 14])
   }
 
   regeneratePlots (params) {
-    const plots = []
-    params.forEach((_, i) => {
-      plots.push({ key: `wr${i + 1}`, type: 'line' })
+    return params.map((_, i) => {
+      return { key: `wr${i + 1}`, type: 'line' }
     })
-    return plots
   }
 
   /**
@@ -44,9 +37,10 @@ export default class WilliamsR extends TechnicalIndicator {
    *
    * @param dataList
    * @param calcParams
+   * @param plots
    * @returns {[]}
    */
-  calcTechnicalIndicator (dataList, calcParams) {
+  calcTechnicalIndicator (dataList, calcParams, plots) {
     const result = []
     dataList.forEach((kLineData, i) => {
       const wr = {}
@@ -58,7 +52,7 @@ export default class WilliamsR extends TechnicalIndicator {
           const hn = hln.hn
           const ln = hln.ln
           const hnSubLn = hn - ln
-          wr[this.plots[index].key] = hnSubLn === 0 ? 0 : (hn - close) / hnSubLn * 100
+          wr[plots[index].key] = hnSubLn === 0 ? 0 : (hn - close) / hnSubLn * 100
         }
       })
       result.push(wr)

@@ -13,26 +13,24 @@
  */
 
 import TechnicalIndicatorFloatLayerView from './TechnicalIndicatorFloatLayerView'
-import { isFunction, isObject } from '../utils/typeChecks'
+import { isFunction, isObject, isArray } from '../utils/typeChecks'
 import { formatBigNumber, formatDate, formatPrecision, formatValue } from '../utils/format'
 import { calcTextWidth, getFont } from '../utils/canvas'
 import { ChartType, FloatLayerPromptCandleStickTextDisplayType } from '../data/options/styleOptions'
 import { getTechnicalIndicatorInfo } from '../data/technicalindicator/technicalIndicatorControl'
 
 export default class CandleStickFloatLayerView extends TechnicalIndicatorFloatLayerView {
-  _drawPrompt (
-    kLineData, technicalIndicatorData, realDataPos, realDataPosX,
-    technicalIndicator, isDrawValueIndicator
-  ) {
+  _drawPrompt (kLineData, technicalIndicatorData, realDataPos, realDataPosX, technicalIndicator) {
     const options = this._chartData.styleOptions()
     const floatLayerPromptCandleStick = options.floatLayer.prompt.candleStick
     const candleStickPromptData = this._getCandleStickPromptData(kLineData, options.candleStick, floatLayerPromptCandleStick)
     if (floatLayerPromptCandleStick.showType === FloatLayerPromptCandleStickTextDisplayType.STANDARD) {
       this._drawCandleStickStandardPromptText(floatLayerPromptCandleStick, candleStickPromptData)
       if (this._additionalDataProvider.chartType() === ChartType.CANDLE_STICK) {
-        this._drawTechnicalIndicatorPrompt(
-          technicalIndicatorData, realDataPos, realDataPosX,
-          technicalIndicator, isDrawValueIndicator,
+        this._drawTechnicalIndicatorPromptText(
+          technicalIndicatorData,
+          realDataPos,
+          technicalIndicator,
           floatLayerPromptCandleStick.text.size + floatLayerPromptCandleStick.text.marginTop
         )
       }
@@ -41,13 +39,6 @@ export default class CandleStickFloatLayerView extends TechnicalIndicatorFloatLa
       this._drawCandleStickRectPromptText(
         realDataPosX, floatLayerPromptCandleStick, candleStickPromptData, data
       )
-      if (isDrawValueIndicator) {
-        const technicalIndicatorOptions = this._chartData.styleOptions().technicalIndicator
-        this._drawTechnicalIndicatorPromptPoint(
-          realDataPos, realDataPosX, technicalIndicator,
-          data.values, technicalIndicatorOptions.line.colors
-        )
-      }
     }
   }
 
@@ -253,7 +244,7 @@ export default class CandleStickFloatLayerView extends TechnicalIndicatorFloatLa
     if (baseValues) {
       if (isFunction(baseValues)) {
         values = baseValues(kLineData, candleStick, floatLayerPromptCandleStick) || []
-      } else {
+      } else if (isArray(baseValues)) {
         values = baseValues
       }
     } else {

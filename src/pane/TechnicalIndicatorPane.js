@@ -15,15 +15,17 @@
 import Pane from './Pane'
 import TechnicalIndicatorWidget from '../widget/TechnicalIndicatorWidget'
 import YAxisWidget from '../widget/YAxisWidget'
-import { MACD } from '../data/technicalindicator/defaultTechnicalIndicatorType'
 import EmptyTechnicalIndicator from '../data/technicalindicator/TechnicalIndicator'
 import YAxis from '../component/YAxis'
 
 export default class TechnicalIndicatorPane extends Pane {
   constructor (props) {
     super(props)
-    const technicalIndicatorType = props.technicalIndicatorType || MACD
-    this.setTechnicalIndicatorType(technicalIndicatorType)
+    this._technicalIndicator = new EmptyTechnicalIndicator({})
+    if ('height' in props) {
+      this.setHeight(props.height)
+    }
+    this.setTechnicalIndicatorType(props.technicalIndicatorType)
   }
 
   _initBefore (props) {
@@ -77,9 +79,9 @@ export default class TechnicalIndicatorPane extends Pane {
     this._yAxis.setWidth(yAxisWidgetWidth)
   }
 
-  computeAxis () {
+  computeAxis (forceCompute) {
     this._yAxis.calcMinMaxValue()
-    this._yAxis.computeAxis()
+    return this._yAxis.computeAxis(forceCompute)
   }
 
   getSelfAxisWidth () {
@@ -100,7 +102,7 @@ export default class TechnicalIndicatorPane extends Pane {
 
   /**
    * 获取技术指标
-   * @returns {string}
+   * @returns {TechnicalIndicator}
    */
   technicalIndicator () {
     return this._technicalIndicator
@@ -111,18 +113,29 @@ export default class TechnicalIndicatorPane extends Pane {
    * @param technicalIndicatorType
    */
   setTechnicalIndicatorType (technicalIndicatorType) {
-    const { structure: TechnicalIndicator } = this._chartData.technicalIndicator(technicalIndicatorType)
-    if (
-      (!this._technicalIndicator && !TechnicalIndicator) ||
-      (this._technicalIndicator && this._technicalIndicator.name === technicalIndicatorType)
-    ) {
-      return
+    const technicalIndicator = this._chartData.technicalIndicator(technicalIndicatorType)
+    if (this._technicalIndicator && this._technicalIndicator.name === technicalIndicatorType) {
+      return false
     }
-    if (TechnicalIndicator) {
-      this._technicalIndicator = new TechnicalIndicator()
+    if (technicalIndicator) {
+      this._technicalIndicator = Object.create(technicalIndicator)
     } else {
       this._technicalIndicator = new EmptyTechnicalIndicator({})
     }
-    this._chartData.calcTechnicalIndicator(this)
+    return this.calcTechnicalIndicator()
+  }
+
+  /**
+   * 计算指标
+   */
+  calcTechnicalIndicator () {
+    const currentTechnicalIndicator = this.technicalIndicator()
+    const technicalIndicator = this._chartData.technicalIndicator[currentTechnicalIndicator.name]
+    if (technicalIndicator) {
+      currentTechnicalIndicator.setPrecision(technicalIndicator.precision)
+      currentTechnicalIndicator.setCalcParams(technicalIndicator.calcParams)
+    }
+    currentTechnicalIndicator.result = currentTechnicalIndicator.calcTechnicalIndicator(this._chartData.dataList(), currentTechnicalIndicator.calcParams, currentTechnicalIndicator.plots) || []
+    return this.computeAxis()
   }
 }

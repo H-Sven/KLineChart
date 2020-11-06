@@ -20,28 +20,20 @@ export default class MovingAverage extends TechnicalIndicator {
     super({
       name: MA,
       series: TechnicalIndicatorSeries.PRICE,
-      calcParams: [5, 10, 30, 60],
       precision: 2,
       shouldCheckParamCount: false,
-      shouldOhlc: true,
-      plots: [
-        { key: 'ma5', type: 'line' },
-        { key: 'ma10', type: 'line' },
-        { key: 'ma30', type: 'line' },
-        { key: 'ma60', type: 'line' }
-      ]
+      shouldOhlc: true
     })
+    this.setCalcParams([5, 10, 30, 60])
   }
 
   regeneratePlots (params) {
-    const plots = []
-    params.forEach(p => {
-      plots.push({ key: `ma${p}`, type: 'line' })
+    return params.map(p => {
+      return { key: `ma${p}`, type: 'line' }
     })
-    return plots
   }
 
-  calcTechnicalIndicator (dataList, calcParams) {
+  calcTechnicalIndicator (dataList, calcParams, plots) {
     const closeSums = []
     const result = []
     dataList.forEach((kLineData, i) => {
@@ -50,7 +42,7 @@ export default class MovingAverage extends TechnicalIndicator {
       calcParams.forEach((param, j) => {
         closeSums[j] = (closeSums[j] || 0) + close
         if (i >= param - 1) {
-          ma[this.plots[j].key] = closeSums[j] / param
+          ma[plots[j].key] = closeSums[j] / param
           closeSums[j] -= dataList[i - (param - 1)].close
         }
       })

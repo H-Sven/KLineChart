@@ -1,5 +1,26 @@
 # Change Log
 
+## 5.6.0
+`2020-08-29`
++ 🆕 Add `render` property for custom technical indicators.
++ 🆕 Custom indicator api `calcTechnicalIndicator`, add parameter `plots`.
++ 🆕 Add `xAxis.height` and `yAxis.width` to configuration items.
++ 🆕 Add api `subscribeDrawAction` and `unsubscribeDrawAction` for drawing monitoring and cancellation.
++ 🆕 Add api `getTimezone`.
++ 👉 Api `getTechnicalIndicatorParamOptions` changed to `getTechnicalIndicatorParams`。
++ 👉 The built-in indicator text prompt shows that `xxxMa` is changed to `maXxx`.
++ 🗑 Remove the configuration item `floatLayer.prompt.technicalIndicator.point`.
+
+## 5.5.1
+`2020-08-16`
++ 💄 When there is no data, the y-axis is displayed.
++ 💄 Optimize the default main chart technical indicator type, the default chart is simpler.
++ 💄 Optimize performance and reduce useless calculations.
++ 🐞 Fix the problem that the y-axis cannot be displayed and displayed incorrectly when switching the chart type and the newly added secondary chart indicator.
++ 🐞 Fix the problem that cannot be merged correctly when configuration is a method.
++ 👉 `xAxis.tickText.margin` changed to `xAxis.tickText.paddingTop` and `xAxis.tickText.paddingBottom`.
++ 👉 `yAxis.tickText.margin` changed to `yAxis.tickText.paddingLeft` and `yAxis.tickText.paddingRight`.
+
 ## 5.5.0
 `2020-07-26`
 + 🆕 Add back the technical indicator ohlc display.

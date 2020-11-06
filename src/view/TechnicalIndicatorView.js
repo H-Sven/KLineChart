@@ -16,6 +16,7 @@ import View, { PlotType } from './View'
 import { CandleStickStyle, LineStyle } from '../data/options/styleOptions'
 import { drawHorizontalLine, drawVerticalLine, drawLine } from '../utils/canvas'
 import { isValid } from '../utils/typeChecks'
+import { DrawActionType } from '../data/ChartData'
 
 export default class TechnicalIndicatorView extends View {
   constructor (container, chartData, xAxis, yAxis, additionalDataProvider) {
@@ -80,6 +81,31 @@ export default class TechnicalIndicatorView extends View {
     const technicalIndicatorOptions = this._chartData.styleOptions().technicalIndicator
     const dataList = this._chartData.dataList()
     const technicalIndicatorResult = technicalIndicator.result
+    // 技术指标自定义绘制
+    if (technicalIndicator.render) {
+      this._ctx.save()
+      technicalIndicator.render(
+        this._ctx,
+        {
+          from: this._chartData.from(),
+          to: this._chartData.to(),
+          kLineDataList: this._chartData.dataList(),
+          technicalIndicatorDataList: technicalIndicatorResult
+        },
+        {
+          width: this._width,
+          height: this._height,
+          dataSpace: this._chartData.dataSpace(),
+          barSpace: this._chartData.barSpace()
+        },
+        this._chartData.styleOptions(),
+        this._xAxis,
+        this._yAxis,
+        this._yAxis.isCandleStickYAxis()
+      )
+      this._ctx.restore()
+    }
+
     let baseValue = technicalIndicator.baseValue
     if (!isValid(baseValue)) {
       baseValue = this._yAxis.min()
@@ -92,10 +118,13 @@ export default class TechnicalIndicatorView extends View {
         const technicalIndicatorData = technicalIndicatorResult[i] || {}
         let lineValueIndex = 0
         if (technicalIndicator.shouldOhlc && !isCandleStickYAxis) {
-          this._drawCandleStickBar(x, halfBarSpace, barSpace, kLineData, technicalIndicatorOptions.bar, CandleStickStyle.OHLC)
+          this._drawCandleStickBar(x, halfBarSpace, barSpace, i, kLineData, technicalIndicatorOptions.bar, CandleStickStyle.OHLC)
         }
+        const coordinateY = {}
         plots.forEach(plot => {
           const value = technicalIndicatorData[plot.key]
+          const valueY = this._yAxis.convertToPixel(value)
+          coordinateY[plot.key] = valueY
           switch (plot.type) {
             case PlotType.CIRCLE: {
               if (isValid(value)) {
@@ -103,15 +132,12 @@ export default class TechnicalIndicatorView extends View {
                   preData: { kLineData: dataList[i - 1], technicalIndicatorData: technicalIndicatorResult[i - 1] },
                   currentData: { kLineData, technicalIndicatorData }
                 }
-                const valueY = this._yAxis.convertToPixel(value)
                 const circle = {
                   x,
                   y: valueY,
                   radius: halfBarSpace,
                   color: (plot.color && plot.color(cbData, technicalIndicatorOptions)) || technicalIndicatorOptions.circle.noChangeColor,
-                  isStroke: plot.isStroke
-                    ? plot.isStroke(cbData)
-                    : true
+                  isStroke: plot.isStroke ? plot.isStroke(cbData) : true
                 }
                 this._drawCircle(circle)
               }
@@ -123,7 +149,6 @@ export default class TechnicalIndicatorView extends View {
                   preData: { kLineData: dataList[i - 1], technicalIndicatorData: technicalIndicatorResult[i - 1] },
                   currentData: { kLineData, technicalIndicatorData }
                 }
-                const valueY = this._yAxis.convertToPixel(value)
                 const height = Math.abs(baseValueY - valueY)
                 const bar = {
                   x: x - halfBarSpace,
@@ -136,16 +161,13 @@ export default class TechnicalIndicatorView extends View {
                   bar.y = baseValueY
                 }
                 bar.color = (plot.color && plot.color(cbData, technicalIndicatorOptions)) || technicalIndicatorOptions.bar.noChangeColor
-                bar.isStroke = plot.isStroke
-                  ? plot.isStroke(cbData)
-                  : false
+                bar.isStroke = plot.isStroke ? plot.isStroke(cbData) : false
                 this._drawBar(bar)
               }
               break
             }
-            default: {
+            case PlotType.LINE: {
               if (isValid(value)) {
-                const valueY = this._yAxis.convertToPixel(value)
                 const line = { x: x, y: valueY }
                 if (lines[lineValueIndex]) {
                   lines[lineValueIndex].push(line)
@@ -162,7 +184,19 @@ export default class TechnicalIndicatorView extends View {
               lineValueIndex++
               break
             }
+            default: { break }
           }
+          this._drawActionExecute(DrawActionType.DRAW_TECHNICAL_INDICATOR, {
+            ctx: this._ctx,
+            kLineData,
+            technicalIndicatorData,
+            technicalIndicatorType: technicalIndicator.name,
+            coordinate: { x, ...coordinateY },
+            viewport: { width: this._width, height: this._height },
+            barSpace,
+            halfBarSpace,
+            isCandleStick: isCandleStickYAxis
+          })
         })
       },
       () => {
@@ -249,12 +283,9 @@ export default class TechnicalIndicatorView extends View {
     for (let i = this._chartData.from(); i < to; i++) {
       const deltaFromRight = dataSize + offsetRightBarCount - i
       const x = this._width - (deltaFromRight - 0.5) * dataSpace + halfBarSpace
-      const kLineData = dataList[i]
-      onDrawing(x, i, kLineData, halfBarSpace, barSpace)
+      onDrawing(x, i, dataList[i], halfBarSpace, barSpace)
     }
-    if (onDrawEnd) {
-      onDrawEnd()
-    }
+    onDrawEnd && onDrawEnd()
   }
 
   /**
@@ -262,12 +293,13 @@ export default class TechnicalIndicatorView extends View {
    * @param x
    * @param halfBarSpace
    * @param barSpace
+   * @param dataIndex
    * @param kLineData
    * @param barOptions
    * @param barStyle
    * @private
    */
-  _drawCandleStickBar (x, halfBarSpace, barSpace, kLineData, barOptions, barStyle) {
+  _drawCandleStickBar (x, halfBarSpace, barSpace, dataIndex, kLineData, barOptions, barStyle) {
     const open = kLineData.open
     const close = kLineData.close
     const high = kLineData.high
@@ -324,6 +356,32 @@ export default class TechnicalIndicatorView extends View {
         this._ctx.fillRect(x, closeY - 0.5, halfBarSpace, 1)
         break
       }
+    }
+    this._drawActionExecute(DrawActionType.DRAW_CANDLE, {
+      ctx: this._ctx,
+      dataIndex,
+      kLineData,
+      coordinate: { x, open: openY, close: closeY, high: highY, low: lowY },
+      viewport: { width: this._width, height: this._height },
+      barSpace,
+      halfBarSpace,
+      isCandleStick: this._yAxis.isCandleStickYAxis()
+    })
+  }
+
+  /**
+   * 执行绘制事件监听
+   * @param type
+   * @param data
+   * @private
+   */
+  _drawActionExecute (type, data) {
+    // 绘制事件监听
+    const delegate = this._chartData.drawActionDelegate(type)
+    if (delegate.hasObservers()) {
+      this._ctx.save()
+      delegate.execute(data)
+      this._ctx.restore()
     }
   }
 }

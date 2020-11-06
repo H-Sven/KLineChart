@@ -19,22 +19,15 @@ export default class Bias extends TechnicalIndicator {
   constructor () {
     super({
       name: BIAS,
-      calcParams: [6, 12, 24],
-      shouldCheckParamCount: false,
-      plots: [
-        { key: 'bias6', type: 'line' },
-        { key: 'bias12', type: 'line' },
-        { key: 'bias24', type: 'line' }
-      ]
+      shouldCheckParamCount: false
     })
+    this.setCalcParams([6, 12, 24])
   }
 
   regeneratePlots (params) {
-    const plots = []
-    params.forEach(p => {
-      plots.push({ key: `bias${p}`, type: 'line' })
+    return params.map(p => {
+      return { key: `bias${p}`, type: 'line' }
     })
-    return plots
   }
 
   /**
@@ -43,9 +36,10 @@ export default class Bias extends TechnicalIndicator {
    *
    * @param dataList
    * @param calcParams
+   * @param plots
    * @returns {[]}
    */
-  calcTechnicalIndicator (dataList, calcParams) {
+  calcTechnicalIndicator (dataList, calcParams, plots) {
     const closeSums = []
     const result = []
     dataList.forEach((kLineData, i) => {
@@ -55,7 +49,7 @@ export default class Bias extends TechnicalIndicator {
         closeSums[j] = (closeSums[j] || 0) + close
         if (i >= param - 1) {
           const mean = closeSums[j] / calcParams[j]
-          bias[this.plots[j].key] = (close - mean) / mean * 100
+          bias[plots[j].key] = (close - mean) / mean * 100
 
           closeSums[j] -= dataList[i - (param - 1)].close
         }

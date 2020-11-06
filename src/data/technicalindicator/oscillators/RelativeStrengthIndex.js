@@ -19,22 +19,15 @@ export default class RelativeStrengthIndex extends TechnicalIndicator {
   constructor () {
     super({
       name: RSI,
-      calcParams: [6, 12, 24],
-      shouldCheckParamCount: false,
-      plots: [
-        { key: 'rsi6', type: 'line' },
-        { key: 'rsi12', type: 'line' },
-        { key: 'rsi24', type: 'line' }
-      ]
+      shouldCheckParamCount: false
     })
+    this.setCalcParams([6, 12, 24])
   }
 
   regeneratePlots (params) {
-    const plots = []
-    params.forEach(p => {
-      plots.push({ key: `rsi${p}`, type: 'line' })
+    return params.map(p => {
+      return { key: `rsi${p}`, type: 'line' }
     })
-    return plots
   }
 
   /**
@@ -43,9 +36,10 @@ export default class RelativeStrengthIndex extends TechnicalIndicator {
    *
    * @param dataList
    * @param calcParams
+   * @param plots
    * @returns {[]}
    */
-  calcTechnicalIndicator (dataList, calcParams) {
+  calcTechnicalIndicator (dataList, calcParams, plots) {
     const sumCloseAs = []
     const sumCloseBs = []
     const result = []
@@ -65,7 +59,7 @@ export default class RelativeStrengthIndex extends TechnicalIndicator {
         if (i >= param - 1) {
           const a = sumCloseAs[j] / param
           const b = (sumCloseAs[j] + sumCloseBs[j]) / param
-          rsi[this.plots[j].key] = (b === 0 ? 0 : a / b * 100)
+          rsi[plots[j].key] = (b === 0 ? 0 : a / b * 100)
 
           const agoData = dataList[i - (param - 1)]
           const agoOpen = agoData.open
